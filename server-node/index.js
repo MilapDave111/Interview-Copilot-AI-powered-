@@ -1,0 +1,75 @@
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
+
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const FormData = require('form-data');
+
+const app = express();
+app.use(cors());
+
+const storage = multer.diskStorage({
+    destination : function(req, file, cb){
+        cb(null,'uploads/');
+    },
+    filename: function(req, file, cb){
+        const uniqiesuffix = Date.now();
+        cb(null,'audio-' + uniqiesuffix + '.webm');
+    }
+})
+
+const upload = multer({
+    storage:storage
+});
+
+app.get('/api/health',async (req,res) => {
+    try{
+        const pythonResponse = await axios.get('http://127.0.0.1:8000/'); //calling python AI
+        res.json({
+            node_status: "Node is Working",
+            python_status: pythonResponse.data.message
+        })
+
+    }catch(error){
+        res.status(500).json({error:"Python server is done!"});
+    }
+});
+
+app.post('/api/upload',upload.single("audio"), async (req,res) => {
+    if(!req.file){
+        return res.status(400).json({
+            error: "No file recieved"
+        });
+    }
+    console.log("File saved successfully! :",req.file.path);
+
+    try{
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(req.file.path));
+        console.log("Sending file to python AI...");
+
+        const pythonResponse = await axios.post('http://127.0.0.1:8000/transcribe',formData,{
+            headers:{
+                ...formData.getHeaders()
+            }
+        });
+        console.log("Python replied: ",pythonResponse.data);
+        res.json({
+            message:"File processed successfully",
+            filename:req.file.filename,
+            transcript: pythonResponse.data.transcript
+        });
+
+    }catch(error){
+        console.log("AI error:", error.message);
+        res.status(500).json({
+            error: "AI Transcription failed"
+        });
+    }
+});
+
+app.listen(3000, ()=>{
+    console.log("Node server running on http://localhost:3000");
+});

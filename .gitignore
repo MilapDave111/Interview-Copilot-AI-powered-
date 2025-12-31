@@ -1,0 +1,15 @@
+# Python
+venv/
+server-ai/venv/
+__pycache__/
+
+# Binaries
+*.exe
+*.dll
+*.so
+
+# FFmpeg
+external requirements/
+
+# Node
+node_modules/
