@@ -13,3 +13,14 @@ external requirements/
 
 # Node
 node_modules/
+
+# Environment variables
+.env
+server-ai/.env
+
+# Temp audio files
+server-ai/temp_audio-*.webm
+
+# Uploads
+server-node/uploads/
+
