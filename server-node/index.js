@@ -26,7 +26,7 @@ const upload = multer({
 
 app.get('/api/health',async (req,res) => {
     try{
-        const pythonResponse = await axios.get('http://127.0.0.1:8000/'); //calling python AI
+        const pythonResponse = await axios.get('http://127.0.0.1:8000/');
         res.json({
             node_status: "Node is Working",
             python_status: pythonResponse.data.message
@@ -59,7 +59,8 @@ app.post('/api/upload',upload.single("audio"), async (req,res) => {
         res.json({
             message:"File processed successfully",
             filename:req.file.filename,
-            transcript: pythonResponse.data.transcript
+            transcript: pythonResponse.data.transcript,
+            analysis:pythonResponse.data.analysis
         });
 
     }catch(error){
