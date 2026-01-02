@@ -40,7 +40,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         result = model.transcribe(temp_filename)
         
         print("Transcription success!")
-        # return {"transcript": result["text"]}
+        
         print("Analysing text with Groq...")
 
         system_prompt = """

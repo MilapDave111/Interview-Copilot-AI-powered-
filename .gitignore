@@ -3,6 +3,7 @@
 venv/
 server-ai/venv/
 server-ai/.env
+server-node/.env
 __pycache__/
 uploads/
 # Binaries

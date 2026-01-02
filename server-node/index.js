@@ -1,3 +1,4 @@
+const pool = require('./db');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -56,6 +57,23 @@ app.post('/api/upload',upload.single("audio"), async (req,res) => {
             }
         });
         console.log("Python replied: ",pythonResponse.data);
+
+        const interviewData = {
+            filename:req.file.filename,
+            audio_path:req.file.path,
+            transcript:pythonResponse.data.transcript,
+            analysis:pythonResponse.data.analysis,
+            timestamp:new Date()
+        };
+
+        const dbResult = await pool.query(
+            'insert into interviwes (json_log) values ($1) Returning id',
+            [interviewData]
+        );
+
+        const newId = dbResult.rows[0].id;
+        console.log("Saved into Database with ID : ",newId);
+
         res.json({
             message:"File processed successfully",
             filename:req.file.filename,
@@ -67,6 +85,20 @@ app.post('/api/upload',upload.single("audio"), async (req,res) => {
         console.log("AI error:", error.message);
         res.status(500).json({
             error: "AI Transcription failed"
+        });
+    }
+});
+
+app.get('/api/history', async(req,res) => {
+    try{
+        const result = await pool.query(
+            'select * from interviwes order by created_at desc'
+        );
+        res.json(result.rows);
+    }catch(error){
+        console.log("Database Error: ", error);
+        res.status(500).json({
+            error:"Failed to fetch history"
         });
     }
 });
