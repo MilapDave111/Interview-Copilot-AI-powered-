@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Mic, Square, Play, Send, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import toast, { Toaster } from 'react-hot-toast';
 
 function App() {
 
@@ -18,20 +19,23 @@ function App() {
   // --- REFS ---
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
-  
+
   // Visualizer Refs
   const canvasRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationRef = useRef(null);
-  const streamRef = useRef(null); 
+  const streamRef = useRef(null);
 
   // --- TEXT TO SPEECH ---
   const speakText = (text) => {
     if (!text) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1; 
+    utterance.pitch = 1.9;
+    utterance.rate = 1;
+    utterance.volume = 1.0;
+    
     window.speechSynthesis.speak(utterance);
   };
 
@@ -41,10 +45,10 @@ function App() {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContext.createMediaStreamSource(streamRef.current);
       const analyser = audioContext.createAnalyser();
-      
+
       analyser.fftSize = 256;
       source.connect(analyser);
-      
+
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
 
@@ -109,7 +113,7 @@ function App() {
 
     } catch (error) {
       console.error("Error accessing microphone:", error);
-      alert("Microphone permission denied!");
+      toast.error("Microphone permission denied!");
     }
   };
 
@@ -135,7 +139,7 @@ function App() {
       const response = await axios.post('http://localhost:3000/api/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
+
       setTranscript(response.data.transcript);
       setAnalysis(response.data.analysis);
 
@@ -144,12 +148,12 @@ function App() {
         speakText(response.data.analysis.feedback);
       }
 
-      alert("Transcription Completed!");
+      toast.success("Transcription Completed!");
       fetchHistory(); // Refresh list
 
     } catch (error) {
       console.error("Upload failed: ", error);
-      alert("Upload failed! Check Console.");
+      toast.error("Upload failed! Check Console.");
     } finally {
       setIsUploading(false);
     }
@@ -176,14 +180,15 @@ function App() {
     fetchHistory();
   }, []);
 
-  const chartData = [...history].reverse().map((item,index)=> ({
-    attempt : index+1,
-    score : item.json_log?.analysis?.score || 0,
-    data : new Date (item.created_at).toLocaleDateString()
+  const chartData = [...history].reverse().map((item, index) => ({
+    attempt: index + 1,
+    score: item.json_log?.analysis?.score || 0,
+    data: new Date(item.created_at).toLocaleDateString()
   }));
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
+      <Toaster position="top-center" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
       <h1 className="text-3xl font-bold mb-8">Interview Copilot</h1>
 
       <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
@@ -253,7 +258,7 @@ function App() {
 
         {isUploading && !analysis && (
           <div className="mt-8 p-6 bg-slate-800 rounded-xl shadow-2xl w-full border border-slate-700 animate-pulse">
-            
+
             {/* EXPLAIN: This mimics the 'Score Header' */}
             <div className="flex items-center justify-between mb-6 border-b border-slate-600 pb-4">
               {/* Gray bar representing the Title */}
@@ -271,10 +276,10 @@ function App() {
 
             {/* EXPLAIN: This mimics the 'Improvement Section' */}
             <div>
-               <div className="h-4 bg-slate-700 rounded w-1/4 mb-3"></div>
-               <div className="h-16 bg-slate-700 rounded-lg w-full"></div>
+              <div className="h-4 bg-slate-700 rounded w-1/4 mb-3"></div>
+              <div className="h-16 bg-slate-700 rounded-lg w-full"></div>
             </div>
-          
+
           </div>
         )}
 
@@ -283,9 +288,8 @@ function App() {
           <div className="mt-8 p-6 bg-slate-800 rounded-xl shadow-2xl w-full border border-slate-700 animate-fade-in">
             <div className="flex items-center justify-between mb-6 border-b border-slate-600 pb-4">
               <h2 className="text-2xl font-bold text-white">AI Analysis</h2>
-              <div className={`px-4 py-2 rounded-full font-bold text-xl ${
-                (analysis?.score || 0) >= 7 ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-              }`}>
+              <div className={`px-4 py-2 rounded-full font-bold text-xl ${(analysis?.score || 0) >= 7 ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                }`}>
                 Score: {analysis?.score ?? "?"}/10
               </div>
             </div>
@@ -310,22 +314,22 @@ function App() {
         )}
 
         <LineChart width={1000} height={300} data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="attempt" stroke="#9CA3AF" label={{ value: 'Attempt #', position: 'insideBottom', offset: -5 }} />
-                <YAxis stroke="#9CA3AF" domain={[0, 10]} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }}
-                  itemStyle={{ color: '#60A5FA' }}
-                />
-                <Line 
-                  type="linear"
-                  dataKey="score" 
-                  stroke="#3B82F6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#3B82F6', r: 4 }} 
-                  activeDot={{ r: 6 }} 
-                />
-              </LineChart>
+          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <XAxis dataKey="attempt" stroke="#9CA3AF" label={{ value: 'Attempt #', position: 'insideBottom', offset: -5 }} />
+          <YAxis stroke="#9CA3AF" domain={[0, 10]} />
+          <Tooltip
+            contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }}
+            itemStyle={{ color: '#60A5FA' }}
+          />
+          <Line
+            type="linear"
+            dataKey="score"
+            stroke="#3B82F6"
+            strokeWidth={3}
+            dot={{ fill: '#3B82F6', r: 4 }}
+            activeDot={{ r: 6 }}
+          />
+        </LineChart>
 
         {/* HISTORY LIST (Safe Mode) */}
         <div className="w-full mt-12 mb-20">
@@ -335,9 +339,8 @@ function App() {
               <div key={item.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <span className={`font-bold px-2 py-0.5 rounded text-sm ${
-                      (item.json_log?.analysis?.score || 0) >= 7 ? "bg-green-900 text-green-300" : "bg-red-900 text-red-300"
-                    }`}>
+                    <span className={`font-bold px-2 py-0.5 rounded text-sm ${(item.json_log?.analysis?.score || 0) >= 7 ? "bg-green-900 text-green-300" : "bg-red-900 text-red-300"
+                      }`}>
                       Score: {item.json_log?.analysis?.score ?? "N/A"}
                     </span>
                     <span className="text-gray-500 text-xs">{new Date(item.created_at).toLocaleString()}</span>
